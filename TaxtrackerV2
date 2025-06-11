@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxTracker - AI-Powered Tax Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        .receipt-scanner {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .chart-container {
+            height: 250px;
+        }
+        .tax-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            background: white;
+            cursor: pointer;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <div class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-file-invoice-dollar text-2xl"></i>
+                    <h1 class="text-xl font-bold">TaxTracker</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition">
+                        <i class="fas fa-user"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-6">
+            <!-- Dashboard Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Total Tax Paid</h2>
+                        <i class="fas fa-dollar-sign text-blue-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold">$2,843.75</div>
+                    <div class="text-sm text-gray-500 mt-2">Current fiscal year</div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Salary Tax</h2>
+                        <i class="fas fa-money-bill-wave text-green-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold">$2,350.00</div>
+                    <div class="text-sm text-gray-500 mt-2">Year-to-date</div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Receipt Tax</h2>
+                        <i class="fas fa-receipt text-purple-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold">$493.75</div>
+                    <div class="text-sm text-gray-500 mt-2">From 87 receipts</div>
+                </div>
+            </div>
+
+            <!-- Receipt Scanner Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-semibold">Receipt Scanner</h2>
+                </div>
+                <div class="p-6 flex flex-col items-center justify-center">
+                    <div class="receipt-scanner rounded-xl w-full max-w-md h-64 flex flex-col items-center justify-center mb-4 relative overflow-hidden">
+                        <div id="scanner-preview" class="w-full h-full flex items-center justify-center">
+                            <div class="text-center p-4">
+                                <i class="fas fa-camera text-4xl text-white mb-3"></i>
+                                <p class="text-white">Scan or upload a receipt to extract tax information</p>
+                            </div>
+                        </div>
+                        <div id="scanner-result" class="hidden w-full h-full p-4 bg-white dark:bg-gray-700 overflow-y-auto">
+                            <!-- Filled dynamically by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-3 w-full max-w-md">
+                        <button id="capture-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center space-x-2">
+                            <i class="fas fa-camera"></i>
+                            <span>Take Photo</span>
+                        </button>
+                        <div class="file-input-wrapper">
+                            <button class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg flex items-center space-x-2">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload</span>
+                            </button>
+                            <input type="file" id="receipt-upload" accept="image/*" class="file-input">
+                        </div>
+                        <button id="scan-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed pulse">
+                            <i class="fas fa-search-dollar"></i>
+                            <span>Scan for Tax</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary & Tax Input -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-semibold">Add Salary & Tax</h2>
+                </div>
+                <div class="p-6">
+                    <form id="salary-form">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label for="salary-month" class="block text-sm font-medium mb-1">Month</label>
+                                <select id="salary-month" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                                    <option value="">Select month</option>
+                                    <option value="January">January</option>
+                                    <option value="February">February</option>
+                                    <option value="March">March</option>
+                                    <option value="April">April</option>
+                                    <option value="May">May</option>
+                                    <option value="June">June</option>
+                                    <option value="July">July</option>
+                                    <option value="August">August</option>
+                                    <option value="September">September</option>
+                                    <option value="October">October</option>
+                                    <option value="November">November</option>
+                                    <option value="December">December</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="salary-gross" class="block text-sm font-medium mb-1">Gross Salary</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2">$</span>
+                                    <input type="number" id="salary-gross" class="w-full pl-8 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="salary-tax" class="block text-sm font-medium mb-1">Tax Deducted</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2">$</span>
+                                    <input type="number" id="salary-tax" class="w-full pl-8 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="recurring" class="mr-2">
+                                <label for="recurring" class="text-sm">Set as recurring entry</label>
+                            </div>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                                Add Salary Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Tax Records -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold">Recent Tax Records</h2>
+                    <div class="flex space-x-2">
+                        <button class="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded-lg">
+                            <i class="fas fa-filter mr-1"></i> Filter
+                        </button>
+                        <button class="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded-lg">
+                            <i class="fas fa-file-export mr-1"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tax</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <!-- Sample data - would be filled dynamically in a real app -->
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">May 15, 2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Salary</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">Monthly Salary - May</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">$4,500.00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">$850.00</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">May 12, 2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">Receipt</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">Electronics Purchase</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">$229.99</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">$19.75</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">May 8, 2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">Receipt</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">Grocery Shopping</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">$87.42</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">$7.23</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">April 30, 2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Salary</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">Monthly Salary - April</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">$4,500.00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">$850.00</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">April 25, 2023</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">Receipt</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">Dining Out</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">$64.75</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">$5.35</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-2 px-4">
+            <div class="flex justify-around max-w-md mx-auto">
+                <a href="#" class="flex flex-col items-center text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-xs mt-1">Home</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 rounded-lg">
+                    <i class="fas fa-chart-pie text-xl"></i>
+                    <span class="text-xs mt-1">Reports</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 rounded-lg relative">
+                    <i class="fas fa-camera text-xl"></i>
+                    <span class="text-xs mt-1">Scan</span>
+                    <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">5</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 rounded-lg">
+                    <i class="fas fa-cog text-xl"></i>
+                    <span class="text-xs mt-1">Settings</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // Demo functionality for the receipt scanner
+        document.getElementById('receipt-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('scanner-preview').innerHTML = `
+                        <img src="${event.target.result}" alt="Receipt Preview" class="w-full h-full object-contain">
+                    `;
+                    document.getElementById('scan-btn').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('scan-btn').addEventListener('click', function() {
+            // Show loading state
+            const btn = this;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+            btn.classList.add('pulse');
+            
+            // Simulate OCR processing
+            setTimeout(function() {
+                btn.innerHTML = '<i class="fas fa-search-dollar"></i> Scan for Tax';
+                btn.classList.remove('pulse');
+                
+                // Show mock OCR results
+                document.getElementById('scanner-preview').classList.add('hidden');
+                document.getElementById('scanner-result').classList.remove('hidden');
+                document.getElementById('scanner-result').innerHTML = `
+                    <div class="mb-4">
+                        <h3 class="font-semibold text-lg mb-2">Extracted Tax Information</h3>
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                            <div class="flex justify-between mb-1">
+                                <span>Subtotal:</span>
+                                <span>$87.42</span>
+                            </div>
+                            <div class="flex justify-between mb-1">
+                                <span>Tax (8.25%):</span>
+                                <span class="font-medium text-blue-600 dark:text-blue-400">$7.23</span>
+                            </div>
+                            <div class="flex justify-between font-bold border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
+                                <span>Total:</span>
+                                <span>$94.65</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mbL-4">
+                        <h3 class="font-semibold mb-2">Original Text</h3>
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-xs whitespace-pre-wrap">
+SUPERMARKET #1234
+123 MAIN ST, YOUR CITY
+--------------------------------
+ITEM 1   BREAD     $3.99
+ITEM 2   MILK      $2.49
+ITEM 3   EGGS      $4.99
+...
+--------------------------------
+SUBTOTAL        $87.42
+TAX 8.25%        $7.23
+TOTAL           $94.65
+                        </div>
+                    </div>
+                    <div class="flex justify-between mt-4">
+                        <button class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 px-4 py-2 rounded-lg">
+                            <i class="fas fa-edit mr-1"></i> Edit
+                        </button>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-save mr-1"></i> Save Record
+                        </button>
+                    </div>
+                `;
+            }, 2000);
+        });
+
+        // Form submission
+        document.getElementById('salary-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Salary record added successfully!');
+            this.reset();
+        });
+    </script>
+</body>
+</html>
